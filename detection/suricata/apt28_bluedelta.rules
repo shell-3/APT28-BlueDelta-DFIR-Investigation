@@ -1,0 +1,118 @@
+# ============================================================
+# APT28 BlueDelta Detection Rules — Suricata
+# Campaign: BLUEDELTA_20260607_072802 | Operation BlueBalance
+# Author: Adham Alhamidi | Purple Team
+# Date: 2026-06-07
+# Reference: Section 7.1 — Detection Engineering
+# MITRE ATT&CK: T1041 (Exfiltration Over C2 Channel)
+# ============================================================
+
+# ------------------------------------------------------------
+# Rule 1 — SMTP Exfiltration via Gmail Port 587 (T1041)
+# Trigger: Any workstation-initiated TCP connection to port 587
+# Rationale: Finance workstations have no legitimate reason to
+#            originate SMTP connections directly to external hosts.
+#            This is an almost certain exfiltration indicator.
+# ------------------------------------------------------------
+alert tcp $HOME_NET any -> $EXTERNAL_NET 587 (
+    msg:"APT28 BLUEDELTA T1041 - Gmail SMTP Credential Exfiltration - Port 587";
+    flow:established,to_server;
+    threshold:type limit, track by_src, count 1, seconds 60;
+    classtype:trojan-activity;
+    reference:url,attack.mitre.org/techniques/T1041/;
+    reference:url,github.com/adhamalhamidi/APT28-BlueDelta-DFIR-Investigation;
+    sid:9000001;
+    rev:2;
+    metadata:affected_product Windows, attack_target Client_Endpoint,
+              created_at 2026_06_07, deployment Perimeter,
+              signature_severity Major, tag Exfiltration, tag APT28;)
+
+# ------------------------------------------------------------
+# Rule 2 — TLS SMTPS to Gmail with SNI Confirmation (T1041)
+# Trigger: TLS handshake to port 465 with SNI=smtp.gmail.com
+# Rationale: Confirms encrypted SMTP channel identity even when
+#            payload is encrypted — SNI leaks destination.
+# ------------------------------------------------------------
+alert tls $HOME_NET any -> $EXTERNAL_NET 465 (
+    msg:"APT28 BLUEDELTA T1041 - SMTPS Exfiltration to Gmail - SNI Confirmed";
+    flow:established,to_server;
+    tls.sni;
+    content:"smtp.gmail.com";
+    nocase;
+    classtype:trojan-activity;
+    reference:url,attack.mitre.org/techniques/T1041/;
+    sid:9000002;
+    rev:2;
+    metadata:affected_product Windows, attack_target Client_Endpoint,
+              created_at 2026_06_07, deployment Perimeter,
+              signature_severity Major, tag Exfiltration, tag APT28;)
+
+# ------------------------------------------------------------
+# Rule 3 — DNS Lookup for Gmail SMTP Infrastructure (T1041)
+# Trigger: DNS query resolving smtp.gmail.com from workstations
+# Rationale: First step in establishing exfiltration channel.
+#            DNS logging is the earliest detection opportunity.
+#            Workstations resolving SMTP hostnames is anomalous.
+# ------------------------------------------------------------
+alert dns $HOME_NET any -> any 53 (
+    msg:"APT28 BLUEDELTA T1041 - DNS Lookup smtp.gmail.com - Pre-Exfiltration Indicator";
+    dns.query;
+    content:"smtp.gmail.com";
+    nocase;
+    threshold:type limit, track by_src, count 1, seconds 300;
+    classtype:policy-violation;
+    reference:url,attack.mitre.org/techniques/T1041/;
+    sid:9000003;
+    rev:2;
+    metadata:affected_product Windows, attack_target Client_Endpoint,
+              created_at 2026_06_07, deployment Internal,
+              signature_severity Medium, tag Exfiltration, tag APT28;)
+
+# ------------------------------------------------------------
+# Rule 4 — TLS SNI smtp.gmail.com Port 587 (T1041)
+# Trigger: TLS Client Hello with SNI=smtp.gmail.com on port 587
+# Rationale: Specific confirmation of Gmail SMTP exfiltration
+#            as observed in Wireshark frames 106 and 137 during
+#            Campaign BLUEDELTA_20260607_072802.
+#            This rule provides high-confidence, low-FP alerting.
+# ------------------------------------------------------------
+alert tls $HOME_NET any -> $EXTERNAL_NET 587 (
+    msg:"APT28 BLUEDELTA T1041 - TLS SNI smtp.gmail.com Port 587 CONFIRMED";
+    flow:established,to_server;
+    tls.sni;
+    content:"smtp.gmail.com";
+    nocase;
+    classtype:trojan-activity;
+    reference:url,attack.mitre.org/techniques/T1041/;
+    sid:9000004;
+    rev:1;
+    metadata:affected_product Windows, attack_target Client_Endpoint,
+              created_at 2026_06_07, deployment Perimeter,
+              signature_severity Critical, tag Exfiltration, tag APT28,
+              tag HighConfidence;)
+
+# ------------------------------------------------------------
+# Rule 5 — Google Gmail IP Range SMTP Traffic (T1041)
+# Trigger: Traffic to 142.251.127.0/24 on port 587 (Gmail SMTP)
+# Rationale: The specific IP range 142.251.127.108/109 was
+#            confirmed as the exfiltration destination in
+#            Campaign BLUEDELTA_20260607_072802.
+# ------------------------------------------------------------
+alert tcp $HOME_NET any -> 142.251.127.0/24 587 (
+    msg:"APT28 BLUEDELTA T1041 - Direct Gmail SMTP IP Range - Exfiltration Destination";
+    flow:established,to_server;
+    classtype:trojan-activity;
+    reference:url,attack.mitre.org/techniques/T1041/;
+    sid:9000005;
+    rev:1;
+    metadata:affected_product Windows, attack_target Client_Endpoint,
+              created_at 2026_06_07, deployment Perimeter,
+              signature_severity Critical, tag Exfiltration, tag APT28;)
+
+# ============================================================
+# TESTING NOTES:
+# Validate Rule 1: nc -zv smtp.gmail.com 587 from workstation
+# Validate Rule 4: openssl s_client -connect smtp.gmail.com:587
+# Validate Rule 3: nslookup smtp.gmail.com from workstation
+# Expected: All 3 rules should fire within 60 seconds of test
+# ============================================================

@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ============================================================
+  APT28 BlueDelta Sysmon Detection Configuration
+  Campaign: BLUEDELTA_20260607_072802 | Operation BlueBalance
+  Author: Adham Alhamidi | Purple Team
+  Date: 2026-06-07
+  Reference: Section 7.2 — Detection Engineering
+  Base: SwiftOnSecurity Sysmon Config + APT28-specific additions
+  ============================================================
+
+  DETECTION COVERAGE:
+  - EID 1  (Process Create):    mimikatz, NulltackKatz, credential tools
+  - EID 3  (Network Connect):   SMTP exfiltration ports 587/465
+  - EID 7  (Image Load):        sekurlsa, kerberos DLL loads
+  - EID 10 (Process Access):    LSASS credential dumping (GrantedAccess 0x1010)
+
+  CONFIRMED EVENTS FROM CAMPAIGN BLUEDELTA_20260607_072802:
+  - EID 1:  mimikatz.exe (PID 1384) CommandLine="privilege::debug sekurlsa::logonpasswords exit"
+  - EID 1:  python.exe (PID 2156) executing NulltackKatz.py
+  - EID 10: mimikatz.exe -> lsass.exe GrantedAccess=0x1010 (11:38:17 AM)
+  - EID 3:  python.exe -> 142.251.127.109:587 (SMTP exfiltration)
+  ============================================================
+-->
+
+<Sysmon schemaversion="4.90">
+  <HashAlgorithms>SHA256,MD5</HashAlgorithms>
+  <CheckRevocation/>
+  <EventFiltering>
+
+    <!-- ===================================================== -->
+    <!-- EVENT ID 1: PROCESS CREATION                         -->
+    <!-- Priority: Detect credential dumping tools and         -->
+    <!--           malicious script execution (T1003.001,      -->
+    <!--           T1204.002, T1134)                           -->
+    <!-- ===================================================== -->
+    <RuleGroup name="APT28_BLUEDELTA_ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="include">
+
+        <!-- Mimikatz by filename -->
+        <Rule name="APT28_Mimikatz_Execution" groupRelation="or">
+          <Image condition="contains">mimikatz</Image>
+          <OriginalFileName condition="is">mimikatz.exe</OriginalFileName>
+        </Rule>
+
+        <!-- Mimikatz by SHA256 hash (all observed instances) -->
+        <!-- SHA256: 92804FAAAB2175DC501D73E814663058C78C0A042675A8937266357BCFB96C50 -->
+        <Rule name="APT28_Mimikatz_Hash" groupRelation="or">
+          <Hashes condition="contains">92804FAAAB2175DC501D73E814663058C78C0A042675A8937266357BCFB96C50</Hashes>
+        </Rule>
+
+        <!-- Mimikatz by command line arguments -->
+        <Rule name="APT28_Mimikatz_CommandLine" groupRelation="or">
+          <CommandLine condition="contains">sekurlsa</CommandLine>
+          <CommandLine condition="contains">lsadump</CommandLine>
+          <CommandLine condition="contains">privilege::debug</CommandLine>
+          <CommandLine condition="contains">sekurlsa::logonpasswords</CommandLine>
+          <CommandLine condition="contains">sekurlsa::pth</CommandLine>
+          <CommandLine condition="contains">lsadump::sam</CommandLine>
+          <CommandLine condition="contains">lsadump::dcsync</CommandLine>
+        </Rule>
+
+        <!-- NulltackKatz APT28 emulation tool -->
+        <Rule name="APT28_NulltackKatz" groupRelation="or">
+          <Image condition="contains">NulltackKatz</Image>
+          <CommandLine condition="contains">NulltackKatz</CommandLine>
+        </Rule>
+
+        <!-- Python executing scripts from non-standard paths -->
+        <!-- Baseline: python.exe should NOT execute from C:\NulltackLab\ -->
+        <Rule name="APT28_Python_Suspicious_Path" groupRelation="and">
+          <Image condition="end with">python.exe</Image>
+          <CommandLine condition="contains">NulltackLab</CommandLine>
+        </Rule>
+
+        <!-- Generic credential dumping tools -->
+        <Rule name="Credential_Dump_Tools" groupRelation="or">
+          <Image condition="contains">procdump</Image>
+          <CommandLine condition="contains">-ma lsass</CommandLine>
+          <CommandLine condition="contains">comsvcs</CommandLine>
+          <CommandLine condition="contains">MiniDump</CommandLine>
+        </Rule>
+
+        <!-- Suspicious PowerShell invocations -->
+        <Rule name="Suspicious_PowerShell" groupRelation="or">
+          <CommandLine condition="contains">-EncodedCommand</CommandLine>
+          <CommandLine condition="contains">-enc </CommandLine>
+          <CommandLine condition="contains">IEX</CommandLine>
+          <CommandLine condition="contains">Invoke-Expression</CommandLine>
+          <CommandLine condition="contains">DownloadString</CommandLine>
+        </Rule>
+
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- ===================================================== -->
+    <!-- EVENT ID 3: NETWORK CONNECTION                        -->
+    <!-- Priority: Detect SMTP exfiltration channel (T1041)   -->
+    <!-- Confirmed: python.exe -> 142.251.127.109:587          -->
+    <!-- ===================================================== -->
+    <RuleGroup name="APT28_BLUEDELTA_NetworkConnect" groupRelation="or">
+      <NetworkConnect onmatch="include">
+
+        <!-- SMTP submission port (observed in campaign) -->
+        <Rule name="APT28_SMTP_Exfiltration_Port587" groupRelation="or">
+          <DestinationPort condition="is">587</DestinationPort>
+        </Rule>
+
+        <!-- SMTPS port -->
+        <Rule name="APT28_SMTPS_Port465" groupRelation="or">
+          <DestinationPort condition="is">465</DestinationPort>
+        </Rule>
+
+        <!-- Direct connection to Gmail SMTP servers -->
+        <Rule name="APT28_Gmail_SMTP_IP" groupRelation="or">
+          <DestinationIp condition="begin with">142.251.127.</DestinationIp>
+          <DestinationHostname condition="contains">smtp.gmail.com</DestinationHostname>
+          <DestinationHostname condition="contains">1e100.net</DestinationHostname>
+        </Rule>
+
+        <!-- Python/script interpreter making external connections -->
+        <!-- High anomaly: python.exe should not initiate SMTP -->
+        <Rule name="APT28_Script_Network_Exfil" groupRelation="and">
+          <Image condition="end with">python.exe</Image>
+          <DestinationPort condition="is">587</DestinationPort>
+        </Rule>
+
+      </NetworkConnect>
+    </RuleGroup>
+
+    <!-- ===================================================== -->
+    <!-- EVENT ID 7: IMAGE LOAD                                -->
+    <!-- Priority: Detect Mimikatz DLL loads (T1003.001)      -->
+    <!-- ===================================================== -->
+    <RuleGroup name="APT28_BLUEDELTA_ImageLoad" groupRelation="or">
+      <ImageLoad onmatch="include">
+
+        <!-- Mimikatz credential modules -->
+        <Rule name="APT28_Mimikatz_DLL_Load" groupRelation="or">
+          <ImageLoaded condition="contains">sekurlsa</ImageLoaded>
+          <ImageLoaded condition="contains">kerberos</ImageLoaded>
+          <ImageLoaded condition="contains">wdigest</ImageLoaded>
+          <ImageLoaded condition="contains">lsadd</ImageLoaded>
+          <ImageLoaded condition="contains">mimilib</ImageLoaded>
+        </Rule>
+
+        <!-- Suspicious DLL loads from non-standard paths -->
+        <Rule name="Suspicious_DLL_Path" groupRelation="or">
+          <ImageLoaded condition="contains">NulltackLab</ImageLoaded>
+          <ImageLoaded condition="contains">mimikatz</ImageLoaded>
+        </Rule>
+
+      </ImageLoad>
+    </RuleGroup>
+
+    <!-- ===================================================== -->
+    <!-- EVENT ID 10: PROCESS ACCESS (LSASS PROTECTION)       -->
+    <!-- Priority: HIGHEST — Primary T1003.001 indicator      -->
+    <!--                                                       -->
+    <!-- CONFIRMED IN CAMPAIGN BLUEDELTA_20260607_072802:      -->
+    <!-- mimikatz.exe (PID 1652) -> lsass.exe (PID 672)       -->
+    <!-- GrantedAccess: 0x1010                                 -->
+    <!-- = PROCESS_VM_READ | PROCESS_QUERY_LIMITED_INFO        -->
+    <!-- TimeCreated: 6/7/2026 11:38:17 AM                    -->
+    <!-- Volatility corroboration: handle 0x2ac, 0x1010       -->
+    <!-- ===================================================== -->
+    <RuleGroup name="APT28_BLUEDELTA_ProcessAccess_LSASS" groupRelation="or">
+      <ProcessAccess onmatch="include">
+
+        <!-- ANY access to LSASS with credential-dump permissions -->
+        <Rule name="APT28_LSASS_Read_Primary" groupRelation="and">
+          <TargetImage condition="end with">lsass.exe</TargetImage>
+          <GrantedAccess condition="is">0x1010</GrantedAccess>
+        </Rule>
+
+        <!-- Extended LSASS access masks -->
+        <Rule name="APT28_LSASS_Read_Extended" groupRelation="and">
+          <TargetImage condition="end with">lsass.exe</TargetImage>
+          <GrantedAccess condition="is">0x1410</GrantedAccess>
+        </Rule>
+
+        <Rule name="APT28_LSASS_Full_Access" groupRelation="and">
+          <TargetImage condition="end with">lsass.exe</TargetImage>
+          <GrantedAccess condition="is">0x143a</GrantedAccess>
+        </Rule>
+
+        <!-- All access from known malicious images to LSASS -->
+        <Rule name="APT28_Mimikatz_LSASS" groupRelation="and">
+          <TargetImage condition="end with">lsass.exe</TargetImage>
+          <SourceImage condition="contains">mimikatz</SourceImage>
+        </Rule>
+
+      </ProcessAccess>
+    </RuleGroup>
+
+    <!-- ===================================================== -->
+    <!-- EXCLUSIONS — Reduce false positives for EID 10       -->
+    <!-- Whitelist legitimate LSASS accessors:                 -->
+    <!-- Windows Security subsystem, AV/EDR agents             -->
+    <!-- ===================================================== -->
+    <RuleGroup name="LSASS_FP_Reduction" groupRelation="or">
+      <ProcessAccess onmatch="exclude">
+        <SourceImage condition="begin with">C:\Windows\System32\</SourceImage>
+        <SourceImage condition="begin with">C:\Windows\SysWOW64\</SourceImage>
+        <SourceImage condition="contains">MsMpEng</SourceImage>  <!-- Windows Defender -->
+        <SourceImage condition="contains">csrss</SourceImage>
+        <SourceImage condition="contains">wininit</SourceImage>
+      </ProcessAccess>
+    </RuleGroup>
+
+  </EventFiltering>
+</Sysmon>

@@ -1,0 +1,45 @@
+type,value,description,source,confidence,mitre_technique,action_required
+Email,anmarma100@gmail.com,Phishing sender - impersonating Elena Vasquez IT Security Compliance Lead,phishing_email_BLUEDELTA_*.txt,HIGH,T1566.001,BLOCK
+Email,anmar@nulltack.com,Phishing sender display address - impersonating IT Security,phishing_email_BLUEDELTA_*.txt,HIGH,T1566.001,BLOCK
+Email,adhamalhamidi00@gmail.com,Attacker mailbox - credential payload recipient confirmed by SMTP 250 OK,exfiltration_report_BLUEDELTA,HIGH,T1041,BLOCK
+Domain,nulltack.com,Phishing sender domain - spoofed IT Security display name,phishing_email_BLUEDELTA_*.txt,HIGH,T1566.001,BLOCK
+Hostname,smtp.gmail.com,C2 exfiltration channel - TLS SNI confirmed in Wireshark frames 106 and 137,Wireshark PCAP - TLS SNI filter,HIGH,T1041,MONITOR
+Hostname,DESKTOP-N56M5HA,Victim workstation - Windows 10 10.0.19045 AMD64,All evidence sources,HIGH,,INVESTIGATE
+Hostname,lcfrai-in-f108.1e100.net,Gmail SMTP PTR record - primary exfiltration server,Sysmon EID 3,HIGH,T1041,MONITOR
+Hostname,lcfrai-in-f109.1e100.net,Gmail SMTP PTR record - secondary exfiltration server,Sysmon EID 3,HIGH,T1041,MONITOR
+IP,142.251.127.108,Gmail SMTP exfiltration server primary - confirmed destination,Sysmon EID 3 / Wireshark PCAP,HIGH,T1041,NULL_ROUTE
+IP,142.251.127.109,Gmail SMTP exfiltration server secondary - confirmed destination,Sysmon EID 3 / Wireshark PCAP,HIGH,T1041,NULL_ROUTE
+IP,192.168.88.135,Victim workstation DESKTOP-N56M5HA - attacker source IP,All evidence sources,HIGH,,INVESTIGATE
+Port,TCP/587,SMTP STARTTLS exfiltration channel - block from workstation VLANs,Sysmon EID 3 / Wireshark,HIGH,T1041,BLOCK_OUTBOUND
+Port,TCP/465,SMTPS alternative exfiltration port - preventive block,Detection rule - preventive,MEDIUM,T1041,BLOCK_OUTBOUND
+Process,python.exe,NulltackKatz.py executor - PIDs 2156/7824/2112 observed,Sysmon EID 1/3 / Volatility pslist,HIGH,T1204.002,ALERT
+Process,mimikatz.exe,Credential dumping binary - PID 1384 confirmed in RAM at 19:00:41 UTC,Sysmon EID 1/10 / Volatility psscan,HIGH,T1003.001,ALERT
+Process,powershell.exe,Attacker execution environment - PID 2216 parent of mimikatz,Sysmon EID 1 / Volatility,HIGH,T1134,INVESTIGATE
+Process,DumpIt.exe,RAM acquisition tool - PID 6444 at 19:00:55 UTC,Volatility pslist,HIGH,,MONITOR
+File,NulltackKatz.py,APT28 emulation payload - executed from C:\NulltackLab\,Sysmon EID 1 / exfiltration_report,HIGH,T1204.002,REMOVE
+File,mimikatz.exe,Credential extraction binary - C:\NulltackLab\mimikatz-master\x64\,Sysmon EID 1/10 / Volatility,HIGH,T1003.001,REMOVE
+File,memory.raw,RAM acquisition artifact 4GB - C:\NulltackLab\evidence\memory.raw,DumpIt / Volatility 3,HIGH,,PRESERVE_EVIDENCE
+Hash_SHA256,92804FAAAB2175DC501D73E814663058C78C0A042675A8937266357BCFB96C50,mimikatz.exe binary hash - identical across ALL execution instances,Sysmon EID 1 (all runs),HIGH,T1003.001,BLOCK_HASH
+Path,C:\NulltackLab\NulltackKatz.py,Payload execution path,Sysmon EID 1,HIGH,T1204.002,REMOVE
+Path,C:\NulltackLab\mimikatz-master\x64\mimikatz.exe,Mimikatz installation path,Sysmon EID 1/10,HIGH,T1003.001,REMOVE
+Path,C:\NulltackLab\evidence\memory.raw,RAM image location,DumpIt / Volatility,HIGH,,PRESERVE_EVIDENCE
+User_Account,Shell (SID: S-1-5-21-672327993-1804208324-2312081050-1001),Compromised victim account - NTLM hash fully exposed,Sysmon EID 1 + mimikatz sekurlsa,HIGH,T1003.001,RESET_IMMEDIATELY
+User_Account,Administrator (RID 500),Admin account - NTLM hash and plaintext Admin123! exposed,exfiltration_report_BLUEDELTA,HIGH,T1003.001,RESET_IMMEDIATELY
+NTLM_Hash,31d6cfe0d16ae931b73c59d7e0c089c0,Shell account NT hash - usable for Pass-the-Hash lateral movement,mimikatz sekurlsa::logonpasswords,HIGH,T1021,RESET_IMMEDIATELY
+NTLM_Hash,8846f7eaee8fb117ad06bdd830b7586c,Guest/Shell account hash variant,mimikatz output,HIGH,T1021,RESET_IMMEDIATELY
+SHA1_Hash,da39a3ee5e6b4b0d3255bfef95601890afd80709,Shell credential SHA1 (empty hash - indicates no password),mimikatz output,HIGH,,RESET_IMMEDIATELY
+Registry_Key,HKLM\SYSTEM\CurrentControlSet\Control\Lsa (RunAsPPL=0),PPL not enabled - allowed mimikatz LSASS access without bypass,Forensic analysis,HIGH,T1003.001,REMEDIATE
+Protocol,TLSv1.3,Encrypted exfiltration transport - TLS 1.3 used to conceal 3834-byte credential payload,Wireshark PCAP frames 106/137,HIGH,T1041,INSPECT_SNI
+MITRE_ID,T1566.001,Spearphishing Attachment - confirmed via phishing email analysis,phishing_email_BLUEDELTA.txt,HIGH,T1566.001,DETECT
+MITRE_ID,T1204.002,Malicious File Execution - confirmed via Sysmon EID 1,Sysmon EID 1 / NulltackKatz logs,HIGH,T1204.002,DETECT
+MITRE_ID,T1087.001,Local Account Discovery - net user command confirmed,exfiltration_report section 2,HIGH,T1087.001,DETECT
+MITRE_ID,T1016,Network Configuration Discovery - ipconfig /all confirmed,exfiltration_report section 3,HIGH,T1016,DETECT
+MITRE_ID,T1057,Process Discovery - tasklist command confirmed,NulltackKatz execution logs,HIGH,T1057,DETECT
+MITRE_ID,T1134,Access Token Manipulation - SeDebugPrivilege confirmed,mimikatz output - Privilege 20 OK,HIGH,T1134,DETECT
+MITRE_ID,T1003.001,OS Credential Dumping LSASS - confirmed via Sysmon EID 10 + Volatility,Sysmon EID 10 + Volatility handles,HIGH,T1003.001,DETECT
+MITRE_ID,T1041,Exfiltration Over C2 Channel - Gmail SMTP TLS confirmed,Wireshark PCAP + Sysmon EID 3,HIGH,T1041,DETECT
+MITRE_ID,T1021,Remote Services Potential - NTLM hashes available for PtH,exfiltration_report T1021 mentioned,MEDIUM,T1021,INVESTIGATE
+Phishing_Subject,URGENT: Payroll System Security Update Required,Simple urgency lure - first phishing email,phishing_email_BLUEDELTA_*.txt,HIGH,T1566.001,BLOCK
+Phishing_Subject,[ACTION REQUIRED BY EOD] DHS Directive 2025-09,Advanced DHS directive lure - second phishing email,Email received,HIGH,T1566.001,BLOCK
+Fake_CVE,CVE-2025-2847,Fabricated CVE reference in DHS Directive lure - does not exist,phishing_email_BLUEDELTA,HIGH,T1566.001,AWARENESS
+Delivery_URL,drive.google.com/file/d/1tpFjOmPWBGw21YLneFRgqN6st8IehZd5,NulltackKatz.py payload delivery URL via Google Drive,phishing_email_BLUEDELTA,HIGH,T1566.001,BLOCK

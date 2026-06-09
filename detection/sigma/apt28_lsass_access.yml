@@ -1,0 +1,93 @@
+title: APT28 BlueDelta - LSASS Memory Access via Mimikatz (T1003.001)
+id: a4f2b3c1-8e5d-4f9a-b2c7-1d3e6f8a9b4c
+status: stable
+description: |
+  Detects LSASS process memory access consistent with credential dumping via Mimikatz,
+  as observed in Campaign BLUEDELTA_20260607_072802 (Operation BlueBalance).
+  
+  Confirmed event: mimikatz.exe (PID 1652) accessed lsass.exe (PID 672) with 
+  GrantedAccess=0x1010 at 6/7/2026 11:38:17 AM. Volatility 3 corroborated via
+  windows.handles (PID 1384 → handle 0x2ac → lsass PID 672, GrantedAccess=0x1010).
+  
+  GrantedAccess 0x1010 = PROCESS_VM_READ (0x0010) | PROCESS_QUERY_LIMITED_INFORMATION (0x1000)
+  This specific combination is the primary indicator of LSASS credential dumping.
+
+references:
+  - https://attack.mitre.org/techniques/T1003/001/
+  - https://github.com/adhamalhamidi/APT28-BlueDelta-DFIR-Investigation
+  - https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights
+
+author: Adham Alhamidi (Purple Team, Operation BlueBalance)
+date: 2026-06-07
+modified: 2026-06-07
+
+tags:
+  - attack.credential_access
+  - attack.t1003.001
+  - attack.t1134
+  - apt28
+  - bluedelta
+  - fancy_bear
+  - campaign.bluedelta_20260607_072802
+
+logsource:
+  product: windows
+  category: process_access
+
+detection:
+  selection_target:
+    TargetImage|endswith: '\lsass.exe'
+  selection_access:
+    GrantedAccess|contains:
+      - '0x1010'
+      - '0x1410'
+      - '0x143a'
+      - '0x1418'
+      - '0x1438'
+  filter_legitimate:
+    SourceImage|startswith:
+      - 'C:\Windows\System32\'
+      - 'C:\Windows\SysWOW64\'
+    SourceImage|endswith:
+      - '\csrss.exe'
+      - '\wininit.exe'
+      - '\MsMpEng.exe'
+  condition: selection_target and selection_access and not filter_legitimate
+
+falsepositives:
+  - Some EDR/AV products may legitimately access LSASS — whitelist by SourceImage
+  - Windows Security Center (wscsvc) may trigger this rule — add to filter
+  - Process Monitor (procmon) during system analysis may trigger
+
+level: critical
+
+fields:
+  - SourceImage
+  - TargetImage
+  - GrantedAccess
+  - SourceProcessId
+  - TargetProcessId
+  - SourceUser
+  - TargetUser
+  - CallTrace
+
+# ============================================================
+# HUNTING QUERIES (based on confirmed campaign evidence)
+# ============================================================
+#
+# Splunk:
+#   index=sysmon EventCode=10 TargetImage="*lsass.exe" GrantedAccess IN ("0x1010","0x1410","0x143a")
+#   | NOT SourceImage IN ("C:\\Windows\\System32\\*", "C:\\Windows\\SysWOW64\\*")
+#   | table _time, SourceImage, TargetImage, GrantedAccess, SourceProcessId
+#
+# Microsoft Sentinel KQL:
+#   DeviceEvents
+#   | where ActionType == "OpenProcess"
+#   | where FileName == "lsass.exe"
+#   | where AdditionalFields contains "0x1010" or AdditionalFields contains "0x1410"
+#   | project Timestamp, DeviceName, InitiatingProcessFileName, AdditionalFields
+#
+# Elastic (Winlogbeat):
+#   event.code: "10" AND winlog.event_data.TargetImage: *lsass.exe
+#   AND winlog.event_data.GrantedAccess: ("0x1010" OR "0x1410" OR "0x143a")
+# ============================================================

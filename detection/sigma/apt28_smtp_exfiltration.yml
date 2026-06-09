@@ -1,0 +1,100 @@
+title: APT28 BlueDelta - SMTP Exfiltration via Gmail Port 587 (T1041)
+id: b7c3d4e2-9f6e-5a0b-c3d8-2e4f7a9b0c5d
+status: stable
+description: |
+  Detects outbound SMTP connections to port 587 (Gmail submission) from workstations,
+  as observed in Campaign BLUEDELTA_20260607_072802 (Operation BlueBalance).
+  
+  Confirmed event: python.exe (PID 7824, representing NulltackKatz.py) initiated
+  TCP connection to 142.251.127.108/109:587 (Gmail SMTP). Wireshark confirmed
+  TLS 1.3 SNI=smtp.gmail.com and 3,834-byte encrypted credential payload delivery.
+  SMTP 250 OK confirmed exfiltration success.
+  
+  Workstations should NEVER originate direct SMTP connections. This is a zero-FP
+  rule in well-hardened environments — any hit is high-confidence exfiltration.
+
+references:
+  - https://attack.mitre.org/techniques/T1041/
+  - https://github.com/adhamalhamidi/APT28-BlueDelta-DFIR-Investigation
+  - https://unit42.paloaltonetworks.com/apt28-at-the-center-of-the-storm/
+
+author: Adham Alhamidi (Purple Team, Operation BlueBalance)
+date: 2026-06-07
+modified: 2026-06-07
+
+tags:
+  - attack.exfiltration
+  - attack.t1041
+  - attack.t1566.001
+  - apt28
+  - bluedelta
+  - fancy_bear
+  - campaign.bluedelta_20260607_072802
+
+logsource:
+  product: windows
+  category: network_connection
+
+detection:
+  selection_smtp:
+    DestinationPort:
+      - 587
+      - 465
+      - 25
+  filter_mail_servers:
+    # Exclude legitimate mail server processes
+    Image|endswith:
+      - '\OUTLOOK.EXE'
+      - '\thunderbird.exe'
+      - '\mailnews.exe'
+    # Exclude known mail server hosts — update with your mail relay IPs
+    SourcePort:
+      - 25
+      - 587
+  selection_suspicious:
+    # Flag script interpreters making SMTP connections (highest priority)
+    Image|endswith:
+      - '\python.exe'
+      - '\python3.exe'
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\powershell.exe'
+      - '\pwsh.exe'
+      - '\cmd.exe'
+  condition: selection_smtp and (not filter_mail_servers or selection_suspicious)
+
+falsepositives:
+  - Legitimate mail clients (Outlook, Thunderbird) sending mail — filter by process name
+  - Mail relay servers — exclude known mail server source IPs from rule scope
+  - Automated backup/notification tools using SMTP — whitelist by SourceImage
+
+level: high
+
+fields:
+  - Image
+  - DestinationIp
+  - DestinationPort
+  - DestinationHostname
+  - SourceIp
+  - SourcePort
+  - ProcessId
+  - User
+
+# ============================================================
+# CHAIN CORRELATION (Critical — Combines EID 1 + EID 3)
+# ============================================================
+# Most powerful detection: python.exe EID 1 THEN EID 3 to port 587
+# within 300 seconds from same PID.
+#
+# Splunk Correlation:
+#   index=sysmon EventCode=1 Image="*python.exe"
+#   | eval pid=ProcessId, create_time=_time
+#   | join pid [search index=sysmon EventCode=3 DestinationPort=587
+#     | eval pid=ProcessId, network_time=_time]
+#   | where (network_time - create_time) < 300
+#   | table pid, Image, CommandLine, DestinationIp, DestinationPort
+#
+# This exact chain was observed in Campaign BLUEDELTA_20260607_072802:
+# python.exe (NulltackKatz.py) EID 1 at 07:28:05 → EID 3 at 07:28:34
+# Time delta: 29 seconds
+# ============================================================
