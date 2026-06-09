@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Operation BlueBalance — APT28/BlueDelta DFIR Investigation. Campaign BLUEDELTA_20260607_072802. Full forensic analysis with memory forensics, network analysis, MITRE ATT&CK mapping, and incident response playbooks.">
+<title>Operation BlueBalance — APT28 DFIR Investigation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- NAV                                                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<nav id="nav">
+  <div class="nav-brand">
+    <span class="dot"></span>
+    Operation BlueBalance
+  </div>
+  <ul class="nav-links">
+    <li><a href="#hero">Home</a></li>
+    <li><a href="#executive">Summary</a></li>
+    <li><a href="#threat-actor">APT28</a></li>
+    <li><a href="#mitre">MITRE</a></li>
+    <li><a href="#timeline">Timeline</a></li>
+    <li><a href="#knowledge-graph">Knowledge Graph</a></li>
+    <li><a href="#iocs">IOCs</a></li>
+    <li><a href="#detection">Detection</a></li>
+    <li><a href="#incident-response">IR</a></li>
+  </ul>
+  <span class="nav-badge">BLUEDELTA_20260607_072802</span>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- HERO                                                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section id="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-radial"></div>
+  <div class="hero-inner">
+
+    <div class="hero-op-label">🔴 LIVE INVESTIGATION · PURPLE TEAM · 2026-06-07</div>
+
+    <h1 class="hero-title">
+      <span class="accent">Operation</span> BlueBalance
+      <span class="sub">Inside APT28 Tradecraft · GRU Unit 26165 · Fancy Bear</span>
+    </h1>
+
+    <!-- Terminal widget — the signature element -->
+    <div class="terminal-widget">
+      <div class="terminal-scan"></div>
+      <div class="terminal-topbar">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-amber"></span>
+        <span class="dot dot-green"></span>
+        <span class="terminal-title">dfir@nulltack — volatility3 · sysmon · wireshark</span>
+      </div>
+      <div class="terminal-body">
+        <div class="terminal-line"><span class="prompt">▶</span> <span class="cmd">Campaign ID:</span>  <span class="val">BLUEDELTA_20260607_072802</span></div>
+        <div class="terminal-line"><span class="prompt">▶</span> <span class="cmd">Target Host:</span>  <span class="val">DESKTOP-N56M5HA · Windows 10 (10.0.19045) · AMD64</span></div>
+        <div class="terminal-line"><span class="prompt">▶</span> <span class="cmd">Attack Chain:</span> <span class="val">T1566.001 → T1204.002 → T1003.001 → T1041</span></div>
+        <div class="terminal-line"><span class="prompt">▶</span> <span class="cmd">Duration:</span>     <span class="warn">~40 seconds</span> <span class="ok">· automated execution</span></div>
+        <div class="terminal-line"><span class="prompt">▶</span> <span class="cmd">Exfiltration:</span> <span class="val">smtp.gmail.com:587</span> · <span class="warn">3,834-byte payload · SMTP 250 OK</span></div>
+        <div class="terminal-line"><span class="prompt">▶</span> <span class="cmd">Detection:</span>    <span class="ok">100% coverage · all phases detected</span></div>
+        <div class="terminal-line"><span class="prompt">▶</span> <span class="cmd">Memory:</span>       <span class="ok">Volatility 3 · mimikatz PID 1384 confirmed in RAM</span></div>
+        <div class="terminal-line"><span class="prompt">$</span> <span class="cmd">status</span> <span class="cursor"></span></div>
+      </div>
+    </div>
+
+    <div class="hero-metrics">
+      <div class="hero-metric">
+        <span class="m-value">9</span>
+        <span class="m-label">MITRE Techniques</span>
+      </div>
+      <div class="hero-metric">
+        <span class="m-value">40s</span>
+        <span class="m-label">Full Compromise</span>
+      </div>
+      <div class="hero-metric">
+        <span class="m-value">5</span>
+        <span class="m-label">Evidence Streams</span>
+      </div>
+      <div class="hero-metric">
+        <span class="m-value">42</span>
+        <span class="m-label">IOCs Confirmed</span>
+      </div>
+      <div class="hero-metric">
+        <span class="m-value">100%</span>
+        <span class="m-label">Detection Coverage</span>
+      </div>
+    </div>
+
+    <div class="hero-cta-row">
+      <a href="APT28_DFIR_Report.pdf" class="btn btn-primary" target="_blank">
+        📄 Full Report (PDF)
+      </a>
+      <a href="#executive" class="btn btn-outline">
+        Explore Investigation ↓
+      </a>
+    </div>
+
+  </div>
+  <div class="hero-scroll">
+    <div class="scroll-line">
+      <span>Scroll</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- EXECUTIVE SUMMARY / DASHBOARD                              -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section id="executive" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-eyebrow">Executive Summary</div>
+      <h2>Full Attack Chain Reconstructed</h2>
+      <p>APT28 (Fancy Bear / BlueDelta) threat emulation exercise simulating the complete GRU Unit 26165 kill chain — spearphishing through credential dumping to confirmed Gmail SMTP exfiltration. All nine attack phases were detected and forensically validated.</p>
+    </div>
+
+    <div class="dashboard-grid">
+
+      <div class="dash-card confirmed reveal">
+        <div class="dash-card-top">
+          <div class="dash-card-icon icon-green">📧</div>
+          <span class="status-pill pill-green">Confirmed</span>
+        </div>
+        <div class="dash-card-mitre">T1566.001</div>
+        <div class="dash-card-title">Initial Access — Spearphishing</div>
+        <div class="dash-card-text">DHS Directive 2025-09 lure impersonating Elena Vasquez, IT Security Compliance Lead. Two-layered social engineering: payroll urgency + fake CVE-2025-2847.</div>
+        <div class="dash-card-evidence">phishing_email_BLUEDELTA_*.txt · sender mismatch IoC · 07:28:00</div>
+      </div>
+
+      <div class="dash-card confirmed reveal">
+        <div class="dash-card-top">
+          <div class="dash-card-icon icon-cyan">🐍</div>
+          <span class="status-pill pill-green">Confirmed</span>
+        </div>
+        <div class="dash-card-mitre">T1204.002</div>
+        <div class="dash-card-title">Execution — NulltackKatz.py</div>
+        <div class="dash-card-text">python.exe (PID 2156) executed NulltackKatz.py from C:\NulltackLab\. Immediately triggered the multi-phase attack chain.</div>
+        <div class="dash-card-evidence">Sysmon EID 1 · PID 2156 · ParentImage: cmd.exe · 07:28:05</div>
+      </div>
+
+      <div class="dash-card confirmed reveal">
+        <div class="dash-card-top">
+          <div class="dash-card-icon icon-amber">🔑</div>
+          <span class="status-pill pill-green">Confirmed</span>
+        </div>
+        <div class="dash-card-mitre">T1134</div>
+        <div class="dash-card-title">Privilege Escalation</div>
+        <div class="dash-card-text">privilege::debug granted SeDebugPrivilege (Privilege 20 OK), enabling direct LSASS memory read access via Mimikatz.</div>
+        <div class="dash-card-evidence">Sysmon EID 1 · mimikatz output · 07:28:25</div>
+      </div>
+
+      <div class="dash-card critical reveal">
+        <div class="dash-card-top">
+          <div class="dash-card-icon icon-red">💀</div>
+          <span class="status-pill pill-red">Critical</span>
+        </div>
+        <div class="dash-card-mitre">T1003.001</div>
+        <div class="dash-card-title">LSASS Credential Dump</div>
+        <div class="dash-card-text">Mimikatz sekurlsa::logonpasswords dumped NTLM hashes and plaintext passwords. GrantedAccess=0x1010 confirmed by Sysmon EID 10 and Volatility 3 windows.handles.</div>
+        <div class="dash-card-evidence">Sysmon EID 10 · GrantedAccess=0x1010 · Volatility handles PID 1384→672 · 07:28:30</div>
+      </div>
+
+      <div class="dash-card confirmed reveal">
+        <div class="dash-card-top">
+          <div class="dash-card-icon icon-cyan">📤</div>
+          <span class="status-pill pill-green">Confirmed</span>
+        </div>
+        <div class="dash-card-mitre">T1041</div>
+        <div class="dash-card-title">Gmail SMTP Exfiltration</div>
+        <div class="dash-card-text">3,834-byte credential payload transmitted via TLS 1.3 to smtp.gmail.com:587. SMTP 250 OK delivery confirmed. SNI captured in Wireshark frames 106 and 137.</div>
+        <div class="dash-card-evidence">Wireshark PCAP · SNI=smtp.gmail.com · 142.251.127.108:587 · 07:28:34–40</div>
+      </div>
+
+      <div class="dash-card info reveal">
+        <div class="dash-card-top">
+          <div class="dash-card-icon icon-cyan">🧠</div>
+          <span class="status-pill pill-cyan">Complete</span>
+        </div>
+        <div class="dash-card-mitre">Memory Forensics</div>
+        <div class="dash-card-title">Volatility 3 RAM Analysis</div>
+        <div class="dash-card-text">4GB memory.raw acquired via DumpIt. Volatility 3 confirmed full attack toolchain: mimikatz PID 1384 holds handle 0x2ac on lsass PID 672, GrantedAccess=0x1010.</div>
+        <div class="dash-card-evidence">windows.pslist · windows.psscan · windows.handles · 19:00:41 UTC</div>
+      </div>
+
+      <div class="dash-card info reveal">
+        <div class="dash-card-top">
+          <div class="dash-card-icon icon-green">🛡️</div>
+          <span class="status-pill pill-green">Full</span>
+        </div>
+        <div class="dash-card-mitre">Detection Coverage</div>
+        <div class="dash-card-title">100% Phase Detection</div>
+        <div class="dash-card-text">Every attack phase detected independently: email gateway, Sysmon EID 1/3/10, Suricata TLS SNI, Wireshark PCAP, Volatility 3. Five independent detection chokepoints identified.</div>
+        <div class="dash-card-evidence">Sysmon EID 1/3/7/10 · Suricata rules · Wireshark · Volatility 3</div>
+      </div>
+
+      <div class="dash-card high reveal">
+        <div class="dash-card-top">
+          <div class="dash-card-icon icon-amber">🎯</div>
+          <span class="status-pill pill-amber">Attributed</span>
+        </div>
+        <div class="dash-card-mitre">G0007</div>
+        <div class="dash-card-title">Threat Attribution — APT28</div>
+        <div class="dash-card-text">GRU Unit 26165 / Fancy Bear / BlueDelta. TTPs consistent with 2025 BlueDelta credential harvesting campaign (Turkish energy, EU think tanks). MITRE G0007.</div>
+        <div class="dash-card-evidence">GRU Unit 26165 · MITRE G0007 · BlueDelta 2025 campaign alignment</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- THREAT ACTOR PROFILE                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section id="threat-actor" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-eyebrow">Threat Intelligence</div>
+      <h2>APT28 Threat Actor Profile</h2>
+      <p>Russian GRU Military Unit 26165 — state-sponsored cyber espionage active since 2007, targeting government, military, finance, energy, and political organizations globally.</p>
+    </div>
+
+    <div class="threat-layout">
+      <div class="reveal">
+        <table class="info-table">
+          <tr><td>MITRE Group ID</td><td><span class="text-amber text-mono">G0007</span></td></tr>
+          <tr><td>Also Known As</td><td>Fancy Bear · BlueDelta · Sednit · Sofacy · STRONTIUM · Forest Blizzard · Pawn Storm</td></tr>
+          <tr><td>Attribution</td><td>Russian GRU — Military Unit 26165 (85th GTsSS)</td></tr>
+          <tr><td>Active Since</td><td>2007 (publicly identified ~2014)</td></tr>
+          <tr><td>Motivation</td><td>Political espionage · credential theft · election interference · intelligence collection</td></tr>
+          <tr><td>Primary Sectors</td><td>Government · Military · Finance · Energy · Media · Political</td></tr>
+          <tr><td>Related Units</td><td>Sandworm (GRU Unit 74455) — destructive ops</td></tr>
+          <tr><td>Key Malware</td><td>X-Agent · XTUNNEL · Sofacy · Zebrocy · LoJax UEFI rootkit</td></tr>
+          <tr><td>Exfil Methods</td><td>SMTP/TLS · HTTPS C2 · OneDrive/Dropbox blend · XTUNNEL encrypted tunnel</td></tr>
+        </table>
+      </div>
+
+      <div class="reveal">
+        <div class="section-eyebrow">Historical Operations</div>
+        <div class="ops-timeline">
+          <div class="op-item">
+            <div class="op-year">2016</div>
+            <div>
+              <div class="op-name">U.S. Election Interference</div>
+              <div class="op-desc">DNC, Clinton Campaign, DCCC breach. Credential theft, email exfiltration, influence operations.</div>
+              <div class="op-tags"><span class="op-tag">T1566.001</span><span class="op-tag">T1078</span><span class="op-tag">T1041</span></div>
+            </div>
+          </div>
+          <div class="op-item">
+            <div class="op-year">2018</div>
+            <div>
+              <div class="op-name">OPCW / Spiez Laboratory</div>
+              <div class="op-desc">Targeting chemical weapons investigators (Salisbury probe). Close-access WiFi attack, spearphishing.</div>
+              <div class="op-tags"><span class="op-tag">T1566</span><span class="op-tag">T1003</span><span class="op-tag">T1041</span></div>
+            </div>
+          </div>
+          <div class="op-item">
+            <div class="op-year">2014–18</div>
+            <div>
+              <div class="op-name">WADA / Anti-Doping Agencies</div>
+              <div class="op-desc">World Anti-Doping Agency breach. Stolen athlete medical data weaponized for information operations.</div>
+              <div class="op-tags"><span class="op-tag">T1566</span><span class="op-tag">T1213</span><span class="op-tag">T1078</span></div>
+            </div>
+          </div>
+          <div class="op-item">
+            <div class="op-year">2025</div>
+            <div>
+              <div class="op-name">BlueDelta Credential Harvesting</div>
+              <div class="op-desc">Turkish energy companies, European think tanks, Netherlands (MIVD advisory). OWA credential phishing, Sophos VPN abuse.</div>
+              <div class="op-tags"><span class="op-tag">T1566.001</span><span class="op-tag">T1003.001</span><span class="op-tag">OWA abuse</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- MITRE ATT&CK MAPPING                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section id="mitre" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-eyebrow">MITRE ATT&amp;CK Enterprise v14</div>
+      <h2>Technique Mapping</h2>
+      <p>Nine techniques confirmed across the complete attack chain. All mapped to verified forensic evidence from Sysmon telemetry, Wireshark PCAP, and Volatility 3 memory analysis.</p>
+    </div>
+
+    <div class="mitre-table-wrap reveal">
+      <table class="mitre-table">
+        <thead>
+          <tr>
+            <th>Technique ID</th>
+            <th>Technique</th>
+            <th>Tactic</th>
+            <th>Detection Method</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tid">T1566.001</span></td>
+            <td><div class="tname">Spearphishing Attachment</div><div class="ttactic">Initial Access</div></td>
+            <td><span class="ttactic">Initial Access</span></td>
+            <td><div class="tdetect">Email header analysis · sender mismatch · DMARC enforcement</div></td>
+            <td class="t-status"><span class="status-pill pill-green">✓ Confirmed</span></td>
+          </tr>
+          <tr>
+            <td><span class="tid">T1204.002</span></td>
+            <td><div class="tname">User Execution: Malicious File</div></td>
+            <td><span class="ttactic">Execution</span></td>
+            <td><div class="tdetect">Sysmon EID 1 · python.exe + NulltackKatz.py process creation</div></td>
+            <td class="t-status"><span class="status-pill pill-green">✓ Confirmed</span></td>
+          </tr>
+          <tr>
+            <td><span class="tid">T1087.001</span></td>
+            <td><div class="tname">Local Account Discovery</div></td>
+            <td><span class="ttactic">Discovery</span></td>
+            <td><div class="tdetect">Sysmon EID 1 · net user command-line detection</div></td>
+            <td class="t-status"><span class="status-pill pill-green">✓ Confirmed</span></td>
+          </tr>
+          <tr>
+            <td><span class="tid">T1016</span></td>
+            <td><div class="tname">System Network Config Discovery</div></td>
+            <td><span class="ttactic">Discovery</span></td>
+            <td><div class="tdetect">Sysmon EID 1 · ipconfig /all execution</div></td>
+            <td class="t-status"><span class="status-pill pill-green">✓ Confirmed</span></td>
+          </tr>
+          <tr>
+            <td><span class="tid">T1057</span></td>
+            <td><div class="tname">Process Discovery</div></td>
+            <td><span class="ttactic">Discovery</span></td>
+            <td><div class="tdetect">Sysmon EID 1 · tasklist execution</div></td>
+            <td class="t-status"><span class="status-pill pill-green">✓ Confirmed</span></td>
+          </tr>
+          <tr>
+            <td><span class="tid">T1134</span></td>
+            <td><div class="tname">Access Token Manipulation</div></td>
+            <td><span class="ttactic">Privilege Escalation</span></td>
+            <td><div class="tdetect">Sysmon EID 1 · privilege::debug · SeDebugPrivilege grant</div></td>
+            <td class="t-status"><span class="status-pill pill-green">✓ Confirmed</span></td>
+          </tr>
+          <tr>
+            <td><span class="tid">T1003.001</span></td>
+            <td><div class="tname">OS Credential Dumping: LSASS</div></td>
+            <td><span class="ttactic">Credential Access</span></td>
+            <td><div class="tdetect">Sysmon EID 10 · GrantedAccess=0x1010 on lsass.exe · Volatility handles</div></td>
+            <td class="t-status"><span class="status-pill pill-red">⚠ Critical</span></td>
+          </tr>
+          <tr>
+            <td><span class="tid">T1041</span></td>
+            <td><div class="tname">Exfiltration Over C2 Channel</div></td>
+            <td><span class="ttactic">Exfiltration</span></td>
+            <td><div class="tdetect">Wireshark TLS SNI smtp.gmail.com · Sysmon EID 3 port 587 · Suricata</div></td>
+            <td class="t-status"><span class="status-pill pill-green">✓ Confirmed</span></td>
+          </tr>
+          <tr>
+            <td><span class="tid">T1021</span></td>
+            <td><div class="tname">Remote Services (Lateral Movement)</div></td>
+            <td><span class="ttactic">Lateral Movement</span></td>
+            <td><div class="tdetect">NTLM hashes available for Pass-the-Hash · EDR monitoring required</div></td>
+            <td class="t-status"><span class="status-pill pill-amber">⚡ Risk</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- KNOWLEDGE GRAPH                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section id="knowledge-graph" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-eyebrow">Section 9 · Attack Visualization</div>
+      <h2>Knowledge Graph &amp; Investigation Canvas</h2>
+      <p>Two complementary visualizations — each answering a different analytical question. Figure 49 provides the executive view; the Obsidian Canvas provides the analyst investigation workflow. These are not duplicates.</p>
+    </div>
+
+    <div class="kg-layout">
+
+      <!-- Figure 49 — Executive KG -->
+      <div class="kg-figure reveal">
+        <div class="kg-figure-header">
+          <div>
+            <div class="kg-figure-label">Figure 49</div>
+            <div class="kg-figure-title">APT28 Executive Attack Knowledge Graph</div>
+          </div>
+          <span class="kg-purpose-badge badge-exec">Executive View</span>
+        </div>
+        <div class="kg-img-wrap" onclick="openLightbox('images/knowledge_graph.png', 'Figure 49 — APT28 Executive Attack Knowledge Graph')">
+          <img src="images/knowledge_graph.png" alt="Figure 49 — APT28 Executive Attack Knowledge Graph: End-to-end view of Campaign BLUEDELTA_20260607_072802" loading="lazy">
+        </div>
+        <div class="kg-meta">
+          <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">
+            Answers: <em style="color:var(--heading)">"How did the attack occur from beginning to end?"</em>
+            Maps nine analytical dimensions — Threat Actor, Infrastructure, MITRE kill chain, Evidence Layer, and Outcomes.
+          </p>
+          <div class="kg-meta-grid">
+            <div class="kg-meta-item">
+              <div class="kg-meta-label">Threat Actor</div>
+              <div class="kg-meta-value text-mono" style="font-size:.78rem;color:var(--cyan)">APT28 / GRU Unit 26165</div>
+            </div>
+            <div class="kg-meta-item">
+              <div class="kg-meta-label">Infrastructure</div>
+              <div class="kg-meta-value text-mono" style="font-size:.76rem;color:var(--body)">APT28 → DESKTOP → LSASS → smtp.gmail.com</div>
+            </div>
+            <div class="kg-meta-item">
+              <div class="kg-meta-label">MITRE Chain</div>
+              <div class="kg-meta-value text-mono" style="font-size:.74rem;color:var(--amber)">T1566→T1204→T1087→T1134→T1003→T1041</div>
+            </div>
+            <div class="kg-meta-item">
+              <div class="kg-meta-label">Outcomes</div>
+              <div class="kg-meta-value" style="font-size:.82rem">Credential exposure · T1021 risk</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Obsidian Canvas -->
+      <div class="kg-figure reveal">
+        <div class="kg-figure-header">
+          <div>
+            <div class="kg-figure-label">DFIR Investigation Canvas</div>
+            <div class="kg-figure-title">Obsidian Investigation Board — BlueBalance</div>
+          </div>
+          <span class="kg-purpose-badge badge-analyst">Analyst View</span>
+        </div>
+        <div class="kg-img-wrap" onclick="openLightbox('images/obsidian_canvas.png', 'Obsidian DFIR Investigation Canvas — Operation BlueBalance')">
+          <img src="images/obsidian_canvas.png" alt="Obsidian DFIR Investigation Canvas — APT28 BlueBalance — complete analyst investigation board" loading="lazy">
+        </div>
+        <div class="kg-meta">
+          <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">
+            Answers: <em style="color:var(--heading)">"How was the attack investigated and reconstructed?"</em>
+            Analyst-level investigation workflow with evidence correlation, artifact relationships, and detection logic.
+          </p>
+          <div class="kg-meta-grid">
+            <div class="kg-meta-item">
+              <div class="kg-meta-label">Evidence Nodes</div>
+              <div class="kg-meta-value" style="font-size:.82rem">Sysmon EID 1/3/7/10 · Wireshark · Volatility</div>
+            </div>
+            <div class="kg-meta-item">
+              <div class="kg-meta-label">Timeline Covered</div>
+              <div class="kg-meta-value text-mono" style="font-size:.78rem;color:var(--cyan)">07:28 UTC → 19:00 UTC</div>
+            </div>
+            <div class="kg-meta-item">
+              <div class="kg-meta-label">Artifact Relationships</div>
+              <div class="kg-meta-value text-mono" style="font-size:.76rem;color:var(--body)">python→mimikatz→lsass→SMTP</div>
+            </div>
+            <div class="kg-meta-item">
+              <div class="kg-meta-label">Root Cause</div>
+              <div class="kg-meta-value" style="font-size:.82rem">Phishing → exec → cred dump → exfil</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- TIMELINE                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section id="timeline" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-eyebrow">Incident Timeline · UTC+3 Local / UTC</div>
+      <h2>Forensic Event Reconstruction</h2>
+      <p>Every event anchored to a confirmed evidence source. Complete attack chain from phishing delivery to memory forensics. Automated phase: 40 seconds total.</p>
+    </div>
+
+    <div style="max-width:760px" class="reveal">
+      <div class="timeline-list">
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">07:28:00 Local <span class="utc">· 04:28:00 UTC</span></div>
+          <div class="tl-event">📧 Phishing Email Delivered</div>
+          <div class="tl-evidence">phishing_email_BLUEDELTA_*.txt · DHS Directive 2025-09 lure · anmarma100@gmail.com impersonating Elena Vasquez</div>
+          <span class="tl-mitre">T1566.001</span>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">07:28:05 Local <span class="utc">· 04:28:05 UTC</span></div>
+          <div class="tl-event">🐍 NulltackKatz.py Executed — Attack Initiated</div>
+          <div class="tl-evidence">Sysmon EID 1 · python.exe PID 2156 · C:\NulltackLab\NulltackKatz.py</div>
+          <span class="tl-mitre">T1204.002</span>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">07:28:10–14 Local</div>
+          <div class="tl-event">🔍 Discovery — net user / ipconfig /all / tasklist</div>
+          <div class="tl-evidence">Sysmon EID 1 · exfiltration_report §2-3 · system and network reconnaissance complete</div>
+          <span class="tl-mitre">T1087.001 · T1016 · T1057</span>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">07:28:25 Local <span class="utc">· 04:28:25 UTC</span></div>
+          <div class="tl-event">🔑 SeDebugPrivilege Granted — Privilege 20 OK</div>
+          <div class="tl-evidence">Sysmon EID 1 / mimikatz output · privilege::debug · token manipulation confirmed</div>
+          <span class="tl-mitre">T1134</span>
+        </div>
+
+        <div class="tl-item critical">
+          <div class="tl-dot"></div>
+          <div class="tl-time">07:28:30 Local <span class="utc">· 04:28:30 UTC</span></div>
+          <div class="tl-event">💀 LSASS Accessed — GrantedAccess=0x1010</div>
+          <div class="tl-evidence">Sysmon EID 10 · lsass.exe PID 672 · PROCESS_VM_READ | PROCESS_QUERY_LIMITED_INFORMATION</div>
+          <span class="tl-mitre">T1003.001</span>
+        </div>
+
+        <div class="tl-item critical">
+          <div class="tl-dot"></div>
+          <div class="tl-time">07:28:32 Local <span class="utc">· 04:28:32 UTC</span></div>
+          <div class="tl-event">🗝️ Credentials Extracted — NTLM Hashes + Plaintext</div>
+          <div class="tl-evidence">mimikatz_output_simulated.txt · Admin123! · Winter2025! · P@ssw0rd123 · Finance2024 · NTLM hashes</div>
+          <span class="tl-mitre">T1003.001</span>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">07:28:34–36 Local</div>
+          <div class="tl-event">📡 SMTP TCP SYN → TLS Handshake — SNI=smtp.gmail.com</div>
+          <div class="tl-evidence">Sysmon EID 3 PID 7824 · 192.168.88.135:49844→142.251.127.108:587 · Wireshark frame 106 · TLSv1.3</div>
+          <span class="tl-mitre">T1041</span>
+        </div>
+
+        <div class="tl-item confirmed">
+          <div class="tl-dot"></div>
+          <div class="tl-time">07:28:40 Local <span class="utc">· 04:28:40 UTC</span></div>
+          <div class="tl-event">✅ EXFILTRATION CONFIRMED — SMTP 250 OK</div>
+          <div class="tl-evidence">exfiltration_report_BLUEDELTA · 3,834-byte payload · delivered to adhamalhamidi00@gmail.com</div>
+          <span class="tl-mitre">T1041 · ⏱ 40s total</span>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">11:38:17 Local <span class="utc">· 08:38:17 UTC</span></div>
+          <div class="tl-event">🔁 Manual Mimikatz — Sysmon EID 10 Confirmation</div>
+          <div class="tl-evidence">Sysmon EID 10 · mimikatz PID 1652 → lsass PID 672 · GrantedAccess=0x1010 · analyst validation</div>
+          <span class="tl-mitre">T1003.001</span>
+        </div>
+
+        <div class="tl-item confirmed">
+          <div class="tl-dot"></div>
+          <div class="tl-time">19:00:41 UTC</div>
+          <div class="tl-event">🧠 Volatility 3 — mimikatz PID 1384 Confirmed in RAM</div>
+          <div class="tl-evidence">DumpIt 4GB memory.raw · windows.pslist · windows.psscan · windows.handles · handle 0x2ac → lsass PID 672</div>
+          <span class="tl-mitre">Memory Forensics · No DKOM evasion</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- IOC SUMMARY                                                 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section id="iocs" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-eyebrow">Indicators of Compromise · 42 Validated IoCs</div>
+      <h2>IOC Master Summary</h2>
+      <p>All indicators validated by 2+ independent sources. Ingest into SIEM, EDR, and threat intelligence platforms immediately. Full CSV: <a href="../iocs/IOC_Master_Table.csv" style="color:var(--cyan)">IOC_Master_Table.csv</a></p>
+    </div>
+
+    <div class="ioc-grid">
+
+      <div class="reveal">
+        <div class="ioc-group">
+          <div class="ioc-group-header">🌐 Network Indicators</div>
+          <div class="ioc-row">
+            <span class="ioc-type">IP</span>
+            <div><div class="ioc-val">142.251.127.108</div><div class="ioc-desc">Gmail SMTP exfiltration server (primary)</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">IP</span>
+            <div><div class="ioc-val">142.251.127.109</div><div class="ioc-desc">Gmail SMTP exfiltration server (secondary)</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">HOST</span>
+            <div><div class="ioc-val">smtp.gmail.com</div><div class="ioc-desc">C2 exfiltration channel · TLS SNI confirmed</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">PORT</span>
+            <div><div class="ioc-val">TCP/587</div><div class="ioc-desc">SMTP STARTTLS exfiltration channel</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">DOMAIN</span>
+            <div><div class="ioc-val">nulltack.com</div><div class="ioc-desc">Phishing sender domain</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">PROTO</span>
+            <div><div class="ioc-val">TLSv1.3</div><div class="ioc-desc">Encrypted exfiltration transport</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="ioc-group">
+          <div class="ioc-group-header">📧 Email Indicators</div>
+          <div class="ioc-row">
+            <span class="ioc-type">EMAIL</span>
+            <div><div class="ioc-val">anmarma100@gmail.com</div><div class="ioc-desc">Phishing sender · Elena Vasquez impersonation</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">EMAIL</span>
+            <div><div class="ioc-val">anmar@nulltack.com</div><div class="ioc-desc">Phishing display address · IT Security spoofed</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">EMAIL</span>
+            <div><div class="ioc-val">adhamalhamidi00@gmail.com</div><div class="ioc-desc">Attacker mailbox · credential recipient</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">SUBJ</span>
+            <div><div class="ioc-val">URGENT: Payroll System Security Update Required</div><div class="ioc-desc">Simple urgency lure subject</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">SUBJ</span>
+            <div><div class="ioc-val">[ACTION REQUIRED BY EOD] DHS Directive 2025-09</div><div class="ioc-desc">Advanced DHS impersonation lure</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">CVE</span>
+            <div><div class="ioc-val">CVE-2025-2847 (fabricated)</div><div class="ioc-desc">Non-existent CVE used as social engineering hook</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="ioc-group">
+          <div class="ioc-group-header">📁 File &amp; Process Indicators</div>
+          <div class="ioc-row">
+            <span class="ioc-type">FILE</span>
+            <div><div class="ioc-val">NulltackKatz.py</div><div class="ioc-desc">APT28 emulation payload · C:\NulltackLab\</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">FILE</span>
+            <div><div class="ioc-val">mimikatz.exe</div><div class="ioc-desc">Credential dumping binary · C:\NulltackLab\mimikatz-master\x64\</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">SHA256</span>
+            <div><div class="ioc-val" style="font-size:.7rem;word-break:break-all">92804FAAAB2175DC501D73E814663058C78C0A042675A8937266357BCFB96C50</div><div class="ioc-desc">mimikatz.exe · all instances identical</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">PROC</span>
+            <div><div class="ioc-val">python.exe (PID 2156/7824/2112)</div><div class="ioc-desc">NulltackKatz.py executor</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">PROC</span>
+            <div><div class="ioc-val">mimikatz.exe (PID 1384)</div><div class="ioc-desc">Credential dumper · RAM-resident at 19:00:41 UTC</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="ioc-group">
+          <div class="ioc-group-header">🔐 Credential Indicators · ⚠ Action Required</div>
+          <div class="ioc-row">
+            <span class="ioc-type">NTLM</span>
+            <div><div class="ioc-val" style="font-size:.72rem">31d6cfe0d16ae931b73c59d7e0c089c0</div><div class="ioc-desc">Shell account · RESET IMMEDIATELY</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">NTLM</span>
+            <div><div class="ioc-val" style="font-size:.72rem">8846f7eaee8fb117ad06bdd830b7586c</div><div class="ioc-desc">Shell variant · RESET IMMEDIATELY</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">TEXT</span>
+            <div><div class="ioc-val">Admin123! · Winter2025! · P@ssw0rd123 · Finance2024</div><div class="ioc-desc">Plaintext credentials extracted</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">SID</span>
+            <div><div class="ioc-val" style="font-size:.68rem">S-1-5-21-672327993-1804208324-2312081050-1001</div><div class="ioc-desc">Shell user SID · compromised account</div></div>
+          </div>
+          <div class="ioc-row">
+            <span class="ioc-type">KRB</span>
+            <div><div class="ioc-val">krbtgt ticket — TESTLAB.LOCAL</div><div class="ioc-desc">Domain Kerberos ticket · invalidate</div></div>
+          </div>
+        </div>
+
+        <div class="ioc-action-block">
+          <div class="action-title">⚠ Immediate Action Required</div>
+          <code>null route 142.251.127.108 &amp; 142.251.127.109
+block outbound TCP/587 from workstation VLANs
+block: anmarma100@gmail.com, anmar@nulltack.com
+reset: Shell, Administrator credentials NOW
+invalidate: krbtgt x2 (24h interval)</code>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- DETECTION ENGINEERING                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section id="detection" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-eyebrow">Detection Engineering · Suricata · Sysmon · Sigma</div>
+      <h2>Production-Ready Detection Rules</h2>
+      <p>All rules derived from confirmed forensic evidence from Campaign BLUEDELTA_20260607_072802. Deploy to your SIEM, EDR, and network detection stack immediately.</p>
+    </div>
+
+    <div class="detection-tabs reveal">
+      <button class="tab-btn active" onclick="switchTab('suricata', this)">Suricata (Network)</button>
+      <button class="tab-btn" onclick="switchTab('sysmon', this)">Sysmon EID 10 (LSASS)</button>
+      <button class="tab-btn" onclick="switchTab('sigma', this)">Sigma (SIEM)</button>
+      <button class="tab-btn" onclick="switchTab('hunting', this)">Threat Hunting</button>
+    </div>
+
+    <div id="tab-suricata" class="tab-content active reveal">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">detection/suricata/apt28_bluedelta.rules</span>
+          <span class="code-lang">Suricata</span>
+        </div>
+        <div class="code-body"><span class="c"># Rule 1 — SMTP Exfiltration via Gmail Port 587 (T1041)
+# CONFIRMED: python.exe → 142.251.127.108:587 at 07:28:34</span>
+<span class="k">alert</span> tcp $HOME_NET any -> $EXTERNAL_NET <span class="v">587</span> (
+    <span class="n">msg</span>:<span class="s">"APT28 BLUEDELTA T1041 - Gmail SMTP Credential Exfiltration"</span>;
+    flow:established,to_server;
+    classtype:trojan-activity; sid:<span class="v">9000001</span>; rev:2;)
+
+<span class="c"># Rule 2 — TLS SNI smtp.gmail.com (T1041)
+# CONFIRMED: Wireshark frames 106 and 137 — SNI=smtp.gmail.com</span>
+<span class="k">alert</span> tls $HOME_NET any -> $EXTERNAL_NET <span class="v">465</span> (
+    <span class="n">msg</span>:<span class="s">"APT28 BLUEDELTA T1041 - SMTPS Exfiltration to Gmail"</span>;
+    tls.sni; content:<span class="s">"smtp.gmail.com"</span>; nocase;
+    classtype:trojan-activity; sid:<span class="v">9000002</span>; rev:2;)
+
+<span class="c"># Rule 3 — DNS Lookup smtp.gmail.com (T1041 pre-exfil indicator)</span>
+<span class="k">alert</span> dns $HOME_NET any -> any <span class="v">53</span> (
+    <span class="n">msg</span>:<span class="s">"APT28 BLUEDELTA T1041 - DNS Lookup smtp.gmail.com"</span>;
+    dns.query; content:<span class="s">"smtp.gmail.com"</span>; nocase;
+    sid:<span class="v">9000003</span>; rev:2;)
+
+<span class="c"># Rule 4 — TLS SNI smtp.gmail.com Port 587 HIGH CONFIDENCE</span>
+<span class="k">alert</span> tls $HOME_NET any -> $EXTERNAL_NET <span class="v">587</span> (
+    <span class="n">msg</span>:<span class="s">"APT28 BLUEDELTA T1041 - TLS SNI smtp.gmail.com:587 CONFIRMED"</span>;
+    tls.sni; content:<span class="s">"smtp.gmail.com"</span>; nocase;
+    classtype:trojan-activity; sid:<span class="v">9000004</span>; rev:1;)</div>
+      </div>
+    </div>
+
+    <div id="tab-sysmon" class="tab-content reveal">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">detection/sysmon/apt28_sysmon_config.xml (EID 10 excerpt)</span>
+          <span class="code-lang">XML</span>
+        </div>
+        <div class="code-body"><span class="c">&lt;!-- EVENT ID 10: Process Access — LSASS credential dump
+     CONFIRMED: mimikatz.exe (PID 1652) → lsass.exe (PID 672)
+     GrantedAccess: 0x1010 at 6/7/2026 11:38:17 AM
+     Volatility corroboration: handle 0x2ac, GrantedAccess=0x1010 --&gt;</span>
+&lt;<span class="n">ProcessAccess</span> onmatch=<span class="s">"include"</span>&gt;
+
+  &lt;<span class="n">Rule</span> name=<span class="s">"APT28_LSASS_Read_Primary"</span> groupRelation=<span class="s">"and"</span>&gt;
+    &lt;<span class="n">TargetImage</span> condition=<span class="s">"end with"</span>&gt;<span class="v">lsass.exe</span>&lt;/TargetImage&gt;
+    &lt;<span class="n">GrantedAccess</span> condition=<span class="s">"is"</span>&gt;<span class="v">0x1010</span>&lt;/GrantedAccess&gt;
+  &lt;/Rule&gt;
+
+  &lt;<span class="n">Rule</span> name=<span class="s">"APT28_LSASS_Extended"</span> groupRelation=<span class="s">"and"</span>&gt;
+    &lt;<span class="n">TargetImage</span> condition=<span class="s">"end with"</span>&gt;<span class="v">lsass.exe</span>&lt;/TargetImage&gt;
+    &lt;<span class="n">GrantedAccess</span> condition=<span class="s">"is"</span>&gt;<span class="v">0x1410</span>&lt;/GrantedAccess&gt;
+  &lt;/Rule&gt;
+
+  &lt;<span class="n">Rule</span> name=<span class="s">"APT28_Mimikatz_LSASS"</span> groupRelation=<span class="s">"and"</span>&gt;
+    &lt;<span class="n">TargetImage</span> condition=<span class="s">"end with"</span>&gt;<span class="v">lsass.exe</span>&lt;/TargetImage&gt;
+    &lt;<span class="n">SourceImage</span> condition=<span class="s">"contains"</span>&gt;<span class="v">mimikatz</span>&lt;/SourceImage&gt;
+  &lt;/Rule&gt;
+
+&lt;/ProcessAccess&gt;</div>
+      </div>
+    </div>
+
+    <div id="tab-sigma" class="tab-content reveal">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">detection/sigma/apt28_lsass_access.yml</span>
+          <span class="code-lang">Sigma</span>
+        </div>
+        <div class="code-body">title: <span class="s">APT28 BlueDelta - LSASS Memory Access via Mimikatz (T1003.001)</span>
+status: <span class="s">stable</span>
+description: <span class="s">Detects LSASS process memory access consistent with credential</span>
+<span class="s">  dumping. Confirmed: mimikatz PID 1652 → lsass PID 672,</span>
+<span class="s">  GrantedAccess=0x1010 at 6/7/2026 11:38:17 AM.</span>
+author: <span class="s">Adham Alhamidi (Purple Team, Operation BlueBalance)</span>
+tags:
+  - <span class="v">attack.credential_access</span>
+  - <span class="v">attack.t1003.001</span>
+  - <span class="v">apt28</span>
+  - <span class="v">bluedelta</span>
+logsource:
+  product: <span class="n">windows</span>
+  category: <span class="n">process_access</span>
+detection:
+  selection_target:
+    TargetImage|endswith: <span class="s">'\lsass.exe'</span>
+  selection_access:
+    GrantedAccess|contains:
+      - <span class="v">'0x1010'</span>
+      - <span class="v">'0x1410'</span>
+      - <span class="v">'0x143a'</span>
+  filter_legitimate:
+    SourceImage|startswith:
+      - <span class="s">'C:\Windows\System32\'</span>
+      - <span class="s">'C:\Windows\SysWOW64\'</span>
+  condition: <span class="v">selection_target and selection_access and not filter_legitimate</span>
+level: <span class="v">critical</span></div>
+      </div>
+    </div>
+
+    <div id="tab-hunting" class="tab-content reveal">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">Threat Hunting Queries — Splunk / KQL</span>
+          <span class="code-lang">SPL / KQL</span>
+        </div>
+        <div class="code-body"><span class="c">-- SPLUNK: EID 10 LSASS Access (Primary Hunt) --</span>
+index=sysmon EventCode=<span class="v">10</span> TargetImage=<span class="s">"*lsass.exe"</span>
+  GrantedAccess IN (<span class="s">"0x1010"</span>,<span class="s">"0x1410"</span>,<span class="s">"0x143a"</span>)
+| NOT SourceImage IN (<span class="s">"C:\\Windows\\System32\\*"</span>,<span class="s">"C:\\Windows\\SysWOW64\\*"</span>)
+| table _time, SourceImage, TargetImage, GrantedAccess, SourceProcessId
+
+<span class="c">-- SPLUNK: python.exe → SMTP Chain (40-second window) --</span>
+index=sysmon EventCode=<span class="v">1</span> Image=<span class="s">"*python.exe"</span>
+| eval pid=ProcessId, t0=_time
+| join pid [search index=sysmon EventCode=<span class="v">3</span> DestinationPort=<span class="v">587</span>
+  | eval pid=ProcessId, t1=_time]
+| where (t1 - t0) < <span class="v">300</span>
+| table pid, Image, CommandLine, DestinationIp, DestinationPort
+
+<span class="c">-- SENTINEL KQL: mimikatz SHA256 Hunt --</span>
+DeviceProcessEvents
+| where SHA256 == <span class="s">"92804FAAAB2175DC501D73E814663058C78C0A042675A8937266357BCFB96C50"</span>
+| project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine
+
+<span class="c">-- SPLUNK: SMTP Exfiltration from Workstations --</span>
+index=sysmon EventCode=<span class="v">3</span> DestinationPort=<span class="v">587</span>
+| NOT Image IN (<span class="s">"*OUTLOOK.EXE"</span>,<span class="s">"*thunderbird.exe"</span>)
+| table _time, Image, DestinationIp, DestinationHostname, ProcessId</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- INCIDENT RESPONSE                                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section id="incident-response" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-eyebrow">NIST SP 800-61r2 · Incident Response Lifecycle</div>
+      <h2>Incident Response &amp; Remediation</h2>
+      <p>Complete IR playbooks for Campaign BLUEDELTA_20260607_072802. Prioritized by urgency: CRITICAL (immediate) → HIGH (&lt;1 hour) → MEDIUM (&lt;24 hours).</p>
+    </div>
+
+    <div class="critical-box reveal">
+      <div class="cb-label">⚠ Critical Finding — Deploy Immediately</div>
+      <p><strong>Windows Credential Guard was not deployed.</strong> Had it been enabled, T1003.001 (LSASS credential dumping via Mimikatz) would have been <strong>completely prevented</strong> — the attack chain would have failed at step 5 with no credential extraction and no exfiltration. A single Group Policy change + reboot would have stopped this attack entirely.</p>
+    </div>
+
+    <div class="ir-grid" style="margin-top:32px">
+
+      <div class="ir-card reveal">
+        <div class="ir-card-icon">🔒</div>
+        <div class="ir-card-phase">Phase 1 · NIST 800-61r2 §3.3.1</div>
+        <div class="ir-card-title">Containment</div>
+        <div class="ir-card-body">Stop active exfiltration, isolate compromised host, prevent lateral movement via Pass-the-Hash.</div>
+        <ul class="ir-checklist">
+          <li>Isolate DESKTOP-N56M5HA from all network segments</li>
+          <li>Block 192.168.88.135 at internal switch port</li>
+          <li>Reset Shell + Administrator credentials immediately</li>
+          <li>Block Gmail SMTP (null route 142.251.127.108/109)</li>
+          <li>Block senders at email gateway</li>
+          <li>Deploy Suricata rules for port 587</li>
+        </ul>
+        <div style="margin-top:14px"><a href="../incident_response/Containment.md" class="btn btn-outline" style="font-size:.8rem;padding:8px 16px">Full Playbook →</a></div>
+      </div>
+
+      <div class="ir-card reveal">
+        <div class="ir-card-icon">🔨</div>
+        <div class="ir-card-phase">Phase 2 · NIST 800-61r2 §3.3.4</div>
+        <div class="ir-card-title">Eradication</div>
+        <div class="ir-card-body">Remove all attacker artifacts, validate no persistence mechanisms remain, YARA scan enterprise-wide.</div>
+        <ul class="ir-checklist">
+          <li>Hash all artifacts before removal (SHA256)</li>
+          <li>Remove NulltackKatz.py and mimikatz-master\</li>
+          <li>Run YARA scan across all endpoints</li>
+          <li>Audit registry run keys for persistence</li>
+          <li>Validate all scheduled tasks</li>
+          <li>Check WMI event subscriptions</li>
+        </ul>
+        <div style="margin-top:14px"><a href="../incident_response/Eradication.md" class="btn btn-outline" style="font-size:.8rem;padding:8px 16px">Full Playbook →</a></div>
+      </div>
+
+      <div class="ir-card reveal">
+        <div class="ir-card-icon">🔄</div>
+        <div class="ir-card-phase">Phase 3 · NIST 800-61r2 §3.3.5</div>
+        <div class="ir-card-title">Recovery</div>
+        <div class="ir-card-body">Restore from clean backup, implement architectural hardening, validate all detection rules before returning to production.</div>
+        <ul class="ir-checklist">
+          <li>Restore from pre-incident backup or golden image</li>
+          <li>Enable Windows Credential Guard (VBS)</li>
+          <li>Enable LSA Protection (RunAsPPL=1)</li>
+          <li>Enforce 16-character passphrases + MFA</li>
+          <li>Deploy APT28 Sysmon config</li>
+          <li>Re-run BlueBalance to validate detection</li>
+        </ul>
+        <div style="margin-top:14px"><a href="../incident_response/Recovery.md" class="btn btn-outline" style="font-size:.8rem;padding:8px 16px">Full Playbook →</a></div>
+      </div>
+
+      <div class="ir-card reveal">
+        <div class="ir-card-icon">📋</div>
+        <div class="ir-card-phase">Phase 4 · NIST 800-61r2 §3.4</div>
+        <div class="ir-card-title">Lessons Learned</div>
+        <div class="ir-card-body">Five critical gaps identified. Strategic improvements required across people, process, and technology layers.</div>
+        <ul class="ir-checklist">
+          <li>Credential Guard: not deployed → deploy now</li>
+          <li>SMTP egress: open → block from workstations</li>
+          <li>Email sandbox: none → sandbox .py/.ps1/.vbs</li>
+          <li>Training: insufficient → quarterly DHS-style sims</li>
+          <li>PCAP at egress: none → 30-day retention</li>
+        </ul>
+        <div style="margin-top:14px"><a href="../incident_response/Lessons_Learned.md" class="btn btn-outline" style="font-size:.8rem;padding:8px 16px">Full Report →</a></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- FOOTER                                                      -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">Operation BlueBalance — DFIR Investigation</div>
+      <div class="footer-meta">
+        <strong>Analyst:</strong> Adham Alhamidi · Purple Team · Supervisor: Anmar Mohammed<br>
+        <strong>Campaign ID:</strong> <span class="mono text-cyan">BLUEDELTA_20260607_072802</span><br>
+        <strong>Date:</strong> 2026-06-07 · <strong>Report #:</strong> 19<br>
+        <strong>Tools:</strong> Sysmon · Wireshark · DumpIt · Volatility 3 · Obsidian · Suricata<br>
+        <strong>Classification:</strong> Purple Team Exercise — Controlled Lab Environment
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="APT28_DFIR_Report.pdf" target="_blank">📄 Full Report (PDF)</a>
+      <a href="../iocs/IOC_Master_Table.csv">📊 IOC Master Table (CSV)</a>
+      <a href="../mitre/MITRE_Mapping.md">🗺 MITRE ATT&amp;CK Mapping</a>
+      <a href="../detection/suricata/apt28_bluedelta.rules">🛡 Suricata Rules</a>
+      <a href="../timeline/Incident_Timeline.md">📅 Full Timeline</a>
+      <a href="https://attack.mitre.org/groups/G0007/" target="_blank" rel="noopener">🔗 MITRE G0007 — APT28</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Adham Alhamidi — Operation BlueBalance Purple Team · All evidence from controlled lab environment</span>
+    <span>
+      MITRE ATT&amp;CK® references:
+      <span class="mitre-ref">T1566.001 · T1204.002 · T1087.001 · T1016 · T1057 · T1134 · T1003.001 · T1041 · T1021</span>
+    </span>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- LIGHTBOX                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lb-close" onclick="closeLightbox()">✕</button>
+  <img id="lb-img" src="" alt="">
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- JAVASCRIPT                                                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<script>
+// ── Nav active state ────────────────────────────────────────
+const sections = document.querySelectorAll('section[id]');
+const navLinks  = document.querySelectorAll('#nav .nav-links a');
+
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const active = document.querySelector(`#nav a[href="#${e.target.id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { rootMargin: '-40% 0px -55% 0px' });
+
+sections.forEach(s => io.observe(s));
+
+// ── Scroll reveal ────────────────────────────────────────────
+const revealObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      revealObs.unobserve(e.target);
+    }
+  });
+}, { rootMargin: '0px 0px -60px 0px' });
+
+document.querySelectorAll('.reveal').forEach((el, i) => {
+  el.style.transitionDelay = `${(i % 4) * 80}ms`;
+  revealObs.observe(el);
+});
+
+// ── Tab switching ────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Lightbox ─────────────────────────────────────────────────
+function openLightbox(src, alt) {
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lb-img');
+  img.src = src;
+  img.alt = alt;
+  lb.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+// ── Reduce motion ────────────────────────────────────────────
+if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.documentElement.style.setProperty('--transition', '0ms');
+  document.querySelectorAll('.terminal-scan').forEach(el => el.style.display = 'none');
+}
+</script>
+
+</body>
+</html>
